@@ -1,0 +1,91 @@
+name: yusupov
+version: 0.1.0.0
+github: "githubuser/yusupov"
+license: BSD3
+author: "Author name here"
+maintainer: "example@example.com"
+copyright: "2022 Author name here"
+
+extra-source-files:
+  - README.md
+  - ChangeLog.md
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description: Please see the README on GitHub at <https://github.com/githubuser/yusupov#readme>
+
+dependencies:
+  - base >= 4.7 && < 5
+
+library:
+  source-dirs: src
+  ghc-options:
+    - -O3
+    - -Wall
+  default-extensions:
+    - NoImplicitPrelude
+    - OverloadedStrings
+    - TupleSections
+    - BangPatterns
+    - NamedFieldPuns
+    - DeriveGeneric
+    - ScopedTypeVariables
+    - BinaryLiterals
+  dependencies:
+    - attoparsec
+    - text
+    - split
+    - vector
+    - mtl
+    - containers
+    - unordered-containers
+    - hashable
+    - yaml
+    - bytestring
+    - text-show
+
+executables:
+  yusupov-exe:
+    main: Main.hs
+    source-dirs: app
+    ghc-options:
+      - -O3
+      - -threaded
+      - -rtsopts
+      - -Wall
+      - -with-rtsopts=-N
+    default-extensions:
+      - NoImplicitPrelude
+      - OverloadedStrings
+      - TupleSections
+      - BangPatterns
+      - NamedFieldPuns
+      - BinaryLiterals
+    dependencies:
+      - text
+      - yusupov
+      - bytestring
+
+tests:
+  spec:
+    ghc-options:
+      - -O3
+      - -Wall
+    defaults: hspec/hspec@master
+    default-extensions:
+      - NoImplicitPrelude
+      - OverloadedStrings
+      - TupleSections
+      - BangPatterns
+      - NamedFieldPuns
+      - BinaryLiterals
+    dependencies:
+      - attoparsec
+      - yusupov
+      - containers
+      - unordered-containers
