@@ -15,6 +15,6 @@ data Input = Input
   }
   deriving (Eq, Show, Generic)
 
-instance ToJSON Input
-
 instance FromJSON Input
+
+instance ToJSON Input

@@ -1,8 +1,8 @@
 module Diagram where
 
 import Data.Map (fromList)
-import Data.Text (Text, concat)
-import Data.Yaml (FromJSON, ToJSON)
+import Data.Text (Text, concat, pack)
+import Data.Yaml (FromJSON (parseJSON), Parser, ToJSON, Value (..), (.:))
 import qualified FEN
 import GHC.Generics (Generic)
 import PGN (Game (..))
@@ -18,6 +18,37 @@ data Diagram = Diagram
     fen :: FEN.FEN
   }
   deriving (Eq, Show, Generic)
+
+textWithDefault :: Text -> Value -> Parser Text
+textWithDefault t Null = pure t
+textWithDefault _ v = parseJSON v
+
+parseLocation :: Value -> Parser Text
+parseLocation Null = pure ""
+parseLocation v = parseJSON v
+
+parseDate :: Value -> Parser Text
+parseDate (Number x) = pure $ pack $ show x
+parseDate v = parseJSON v
+
+instance FromJSON Diagram where
+  parseJSON v = do
+    obj <- parseJSON v
+    designator <- obj .: "designator"
+    white <- obj .: "white" >>= textWithDefault ""
+    black <- obj .: "black" >>= textWithDefault ""
+    location <- obj .: "location" >>= textWithDefault ""
+    date <- obj .: "date" >>= parseDate
+    fen <- obj .: "fen"
+    pure $
+      Diagram
+        { designator,
+          white,
+          black,
+          location,
+          date,
+          fen
+        }
 
 makeGame :: Int -> Diagram -> Game
 makeGame chapter diagram =
@@ -41,5 +72,3 @@ validate :: Diagram -> Either (String, String) Diagram
 validate dg@Diagram {fen} = either (Left . (,"Diagram " <> show (designator dg)) . fst) (Right . const dg) $ FEN.validate fen
 
 instance ToJSON Diagram
-
-instance FromJSON Diagram
