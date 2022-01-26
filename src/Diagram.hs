@@ -1,8 +1,9 @@
 module Diagram where
 
 import Data.Map (fromList)
+import Data.Maybe (fromMaybe)
 import Data.Text (Text, concat, pack)
-import Data.Yaml (FromJSON (parseJSON), Parser, ToJSON, Value (..), (.:))
+import Data.Yaml (FromJSON (parseJSON), Parser, ToJSON, Value (..), (.:), (.:?))
 import qualified FEN
 import GHC.Generics (Generic)
 import PGN (Game (..))
@@ -35,10 +36,10 @@ instance FromJSON Diagram where
   parseJSON v = do
     obj <- parseJSON v
     designator <- obj .: "designator"
-    white <- obj .: "white" >>= textWithDefault ""
-    black <- obj .: "black" >>= textWithDefault ""
-    location <- obj .: "location" >>= textWithDefault ""
-    date <- obj .: "date" >>= parseDate
+    white <- obj .:? "white" >>= (textWithDefault "" . fromMaybe "")
+    black <- obj .:? "black" >>= (textWithDefault "" . fromMaybe "")
+    location <- obj .:? "location" >>= (textWithDefault "" . fromMaybe "")
+    date <- obj .:? "date" >>= (parseDate . fromMaybe "")
     fen <- obj .: "fen"
     pure $
       Diagram
