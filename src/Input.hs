@@ -10,6 +10,7 @@ import Prelude (Eq, Int, Show)
 data Input = Input
   { book :: Text,
     chapter :: Int,
+    name :: Text,
     diagrams :: [Diagram],
     exercises :: [Exercise]
   }

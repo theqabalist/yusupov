@@ -14,6 +14,21 @@ import PGN (Game (..), PGN (PGN))
 import TextShow (TextShow (showt))
 import Prelude hiding (concat)
 
+makeIntro :: Input -> Game
+makeIntro Input {book, chapter, name} =
+  Game
+    { headers =
+        fromList
+          [ ("White", book),
+            ("Black", "Chapter " <> showt chapter),
+            ("Event", name),
+            ("Site", "?"),
+            ("Date", "????.??.??"),
+            ("Round", "?")
+          ],
+      moves = ["*"]
+    }
+
 makeResult :: [Exercise] -> Game
 makeResult exs =
   let total = sum $ difficulty <$> exs
@@ -40,7 +55,8 @@ transform = encodeUtf8 . either (error . show) id . (toPGN <=< (either (Left . (
       pure $
         concat $
           showt
-            <$> [ PGN (D.makeGame chapter <$> diagrams),
+            <$> [ PGN [makeIntro input],
+                  PGN (D.makeGame chapter <$> diagrams),
                   PGN (uncurry (E.makeGame chapter) <$> indexed exercises),
                   PGN [makeResult exercises]
                 ]
