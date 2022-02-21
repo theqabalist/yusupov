@@ -16,7 +16,7 @@ data Diagram = Diagram
     black :: Text,
     location :: Text,
     date :: Text,
-    fen :: FEN.FEN
+    fen :: Maybe FEN.FEN
   }
   deriving (Eq, Show, Generic)
 
@@ -40,7 +40,7 @@ instance FromJSON Diagram where
     black <- obj .:? "black" >>= (textWithDefault "" . fromMaybe "")
     location <- obj .:? "location" >>= (textWithDefault "" . fromMaybe "")
     date <- obj .:? "date" >>= (parseDate . fromMaybe "")
-    fen <- obj .: "fen"
+    fen <- obj .:? "fen"
     pure $
       Diagram
         { designator,
@@ -53,23 +53,32 @@ instance FromJSON Diagram where
 
 makeGame :: Int -> Diagram -> Game
 makeGame chapter diagram =
-  Game
-    { headers =
-        fromList
-          [ ("Event", concat ["Diagram ", showt chapter, ".", showt $ designator diagram]),
-            ("Site", location diagram),
-            ("Date", date diagram),
-            ("Round", "?"),
-            ("White", white diagram),
-            ("Black", black diagram),
-            ("Result", "*"),
-            ("FEN", showt $ fen diagram),
-            ("SetUp", showt (1 :: Int))
-          ],
-      moves = ["*"]
-    }
+  let setupBlock =
+        maybe
+          []
+          ( \fen ->
+              [ ("FEN", showt fen),
+                ("SetUp", showt (1 :: Int))
+              ]
+          )
+          (fen diagram)
+   in Game
+        { headers =
+            fromList $
+              [ ("Event", concat ["Diagram ", showt chapter, ".", showt $ designator diagram]),
+                ("Site", location diagram),
+                ("Date", date diagram),
+                ("Round", "?"),
+                ("White", white diagram),
+                ("Black", black diagram),
+                ("Result", "*")
+              ]
+                ++ setupBlock,
+          moves = ["*"]
+        }
 
 validate :: Diagram -> Either (String, String) Diagram
-validate dg@Diagram {fen} = either (Left . (,"Diagram " <> show (designator dg)) . fst) (Right . const dg) $ FEN.validate fen
+validate dg@Diagram {fen = Nothing} = Right dg
+validate dg@Diagram {fen = (Just fen)} = either (Left . (,"Diagram " <> show (designator dg)) . fst) (Right . const dg) $ FEN.validate fen
 
 instance ToJSON Diagram
