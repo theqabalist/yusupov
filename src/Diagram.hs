@@ -79,6 +79,6 @@ makeGame chapter diagram =
 
 validate :: Diagram -> Either (String, String) Diagram
 validate dg@Diagram {fen = Nothing} = Right dg
-validate dg@Diagram {fen = (Just fen)} = either (Left . (,"Diagram " <> show (designator dg)) . fst) (Right . const dg) $ FEN.validate fen
+validate dg@Diagram {fen = (Just fen)} = either (Left . (,"Diagram " <> show (designator dg))) (Right . \theFen -> dg {fen = Just theFen}) $ FEN.validate fen
 
 instance ToJSON Diagram

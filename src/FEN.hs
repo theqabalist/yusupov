@@ -1,12 +1,14 @@
 module FEN where
 
-import Control.Applicative hiding (empty)
-import Data.Attoparsec.Text
+import Control.Applicative
+  ( Alternative (many, (<|>)),
+  )
+import Data.Attoparsec.Text hiding (take)
 import Data.Char (digitToInt)
 import Data.Functor
-import Data.Text hiding (empty, singleton)
+import Data.List (intercalate)
+import Data.Text hiding (empty, foldr, intercalate, length, replicate, singleton)
 import Data.Yaml (FromJSON, ToJSON)
-import Debug.Trace
 import GHC.Generics (Generic)
 import TextShow (TextShow (showb), fromText)
 import Prelude
@@ -21,37 +23,8 @@ instance FromJSON FEN
 instance TextShow FEN where
   showb (FEN f) = fromText f
 
-empty :: Int -> Parser Int
-empty total = (+ total) . digitToInt <$> satisfy (inClass "1-8")
-
-peice :: Int -> Parser Int
-peice total = total + 1 <$ (satisfy (inClass "pnbrqk") <|> satisfy (inClass "PNBRQK"))
-
-rankSep :: Int -> Parser Int
-rankSep total =
-  char '/'
-    *> if total `mod` 8 /= 0 then fail message else pure total
-  where
-    message =
-      let ranks :: Int = floor $ (fromIntegral total :: Double) / 8
-       in "error after rank " <> show ranks
-
-end :: Int -> Parser Int
-end total = space *> calced
-  where
-    calced = case traceShowId total of
-      _ | total < 64 -> fail "too little data"
-      _ | total > 64 -> fail "too much data"
-      _ | otherwise -> pure total
-
-fenBoardItem :: Int -> Parser Int
-fenBoardItem total = end total <|> ((empty total <|> peice total <|> rankSep total <|> end total) >>= fenBoardItem)
-
-fenBoard :: Parser Int
-fenBoard = fenBoardItem 0
-
-fenMove :: Parser Char
-fenMove = satisfy (inClass "wb")
+fenMove :: Parser String
+fenMove = (: []) <$> satisfy (inClass "wb")
 
 fenCastling :: Parser String
 fenCastling = ((: []) <$> char '-') <|> many (satisfy (inClass "KQkq"))
@@ -59,25 +32,51 @@ fenCastling = ((: []) <$> char '-') <|> many (satisfy (inClass "KQkq"))
 fenEnPassant :: Parser String
 fenEnPassant = ((: []) <$> char '-') <|> ((\file rank -> [file, rank]) <$> satisfy (inClass "a-h") <*> satisfy (inClass "1-8"))
 
-fenHalfMoveClock :: Parser Int
-fenHalfMoveClock = decimal
+fenHalfMoveClock :: Parser String
+fenHalfMoveClock = show <$> (decimal :: Parser Int)
 
-fenFullMove :: Parser Int
-fenFullMove = decimal
+fenFullMove :: Parser String
+fenFullMove = show <$> (decimal :: Parser Int)
 
-fen :: Parser ()
-fen =
-  fenBoard
-    *> fenMove
-    *> space
-    *> fenCastling
-    *> space
-    *> fenEnPassant
-    *> space
-    *> fenHalfMoveClock
-    *> space
-    *> fenFullMove
-    $> ()
+explicitEmpty :: Parser Char
+explicitEmpty = satisfy (inClass "1-8")
 
-validate :: FEN -> Either (String, FEN) ()
-validate f@(FEN textFEN) = either (Left . (,f)) Right $ parseOnly fen textFEN
+peice2 :: Parser Char
+peice2 = satisfy (inClass "pnbrqk") <|> satisfy (inClass "PNBRQK")
+
+autocompleteRow :: String -> Parser String
+autocompleteRow "" = pure "8"
+autocompleteRow row =
+  let total = foldr (\e t -> t + if inClass "1-8" e then digitToInt e else 1) 0 row
+   in if total < 8
+        then pure (row ++ show (8 - total))
+        else
+          if total == 8
+            then pure row
+            else fail ("Too many items in row '" ++ row ++ "'")
+
+fenRow :: Parser String
+fenRow = many (explicitEmpty <|> peice2) >>= autocompleteRow
+
+fenBoard' :: Parser [String]
+fenBoard' = do
+  rows <- sepBy fenRow (string "/")
+  let n = length rows
+  if n < 8
+    then pure $ rows ++ replicate (8 - n) "8"
+    else
+      if n == 8
+        then pure rows
+        else fail "Too many rows on board"
+
+fenBoard :: Parser String
+fenBoard = intercalate "/" <$> fenBoard'
+
+spaceS :: Parser String
+spaceS = (: []) <$> space
+
+fen :: Parser FEN
+fen = FEN . pack . intercalate "" <$> sequence [fenBoard, spaceS, fenMove, spaceS, fenCastling, spaceS, fenEnPassant, spaceS, fenHalfMoveClock, spaceS, fenFullMove]
+
+validate :: FEN -> Either String FEN
+validate (FEN textFEN) = parseOnly fen textFEN

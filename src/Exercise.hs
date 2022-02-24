@@ -38,4 +38,4 @@ makeGame chapter idx ex =
     }
 
 validate :: Int -> Exercise -> Either (String, String) Exercise
-validate idx ex@Exercise {fen} = either (Left . (,"Exercise " <> show idx) . fst) (Right . const ex) $ FEN.validate fen
+validate idx ex@Exercise {fen} = either (Left . (,"Exercise " <> show idx)) (Right . (\theFen -> ex {fen = theFen})) $ FEN.validate fen
