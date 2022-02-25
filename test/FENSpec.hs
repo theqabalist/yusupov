@@ -26,4 +26,7 @@ spec = do
       parseOnly fen "3b1kr1/3p1p1R/q1rP4/3R2P1/4QP2/PK6/1P6/8 w - - 0 1" `shouldBe` Right (FEN "3b1kr1/3p1p1R/q1rP4/3R2P1/4QP2/PK6/1P6/8 w - - 0 1")
       parseOnly fen "3b1kr/3p1p1R/q1rP/3R2P/4QP/PK/1P/8 w - - 0 1" `shouldBe` Right (FEN "3b1kr1/3p1p1R/q1rP4/3R2P1/4QP2/PK6/1P6/8 w - - 0 1")
       parseOnly fen "3b1kr/3p1p1R w - - 0 1" `shouldBe` Right (FEN "3b1kr1/3p1p1R/8/8/8/8/8/8 w - - 0 1")
+      parseOnly fen "3b1kr/3p1p1R" `shouldBe` Right (FEN "3b1kr1/3p1p1R/8/8/8/8/8/8 w - - 0 1")
+      parseOnly fen "3b1kr/3p1p1R b" `shouldBe` Right (FEN "3b1kr1/3p1p1R/8/8/8/8/8/8 b - - 0 1")
+      parseOnly fen "3b1kr/3p1p1R q" `shouldBe` Right (FEN "3b1kr1/3p1p1R/8/8/8/8/8/8 w q - 0 1")
       parseOnly fen "3b1kr/3p1p1R//////1k w - - 0 1" `shouldBe` Right (FEN "3b1kr1/3p1p1R/8/8/8/8/8/1k6 w - - 0 1")

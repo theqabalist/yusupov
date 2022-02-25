@@ -7,7 +7,7 @@ import Data.Attoparsec.Text hiding (take)
 import Data.Char (digitToInt)
 import Data.Functor
 import Data.List (intercalate)
-import Data.Text hiding (empty, foldr, intercalate, length, replicate, singleton)
+import Data.Text hiding (empty, foldr, intercalate, length, replicate, singleton, unwords)
 import Data.Yaml (FromJSON, ToJSON)
 import GHC.Generics (Generic)
 import TextShow (TextShow (showb), fromText)
@@ -23,20 +23,26 @@ instance FromJSON FEN
 instance TextShow FEN where
   showb (FEN f) = fromText f
 
+spaceS :: Parser String
+spaceS = (: []) <$> space
+
 fenMove :: Parser String
-fenMove = (: []) <$> satisfy (inClass "wb")
+fenMove = (spaceS *> ((: []) <$> satisfy (inClass "wb"))) <|> pure "w"
+
+hyphen :: Parser String
+hyphen = (: []) <$> char '-'
 
 fenCastling :: Parser String
-fenCastling = ((: []) <$> char '-') <|> many (satisfy (inClass "KQkq"))
+fenCastling = (spaceS *> (hyphen <|> many (satisfy (inClass "KQkq")))) <|> pure "-"
 
 fenEnPassant :: Parser String
-fenEnPassant = ((: []) <$> char '-') <|> ((\file rank -> [file, rank]) <$> satisfy (inClass "a-h") <*> satisfy (inClass "1-8"))
+fenEnPassant = (spaceS *> (hyphen <|> ((\file rank -> [file, rank]) <$> satisfy (inClass "a-h") <*> satisfy (inClass "1-8")))) <|> pure "-"
 
 fenHalfMoveClock :: Parser String
-fenHalfMoveClock = show <$> (decimal :: Parser Int)
+fenHalfMoveClock = (spaceS *> (show <$> (decimal :: Parser Int))) <|> pure "0"
 
 fenFullMove :: Parser String
-fenFullMove = show <$> (decimal :: Parser Int)
+fenFullMove = (spaceS *> (show <$> (decimal :: Parser Int))) <|> pure "1"
 
 explicitEmpty :: Parser Char
 explicitEmpty = satisfy (inClass "1-8")
@@ -72,11 +78,8 @@ fenBoard' = do
 fenBoard :: Parser String
 fenBoard = intercalate "/" <$> fenBoard'
 
-spaceS :: Parser String
-spaceS = (: []) <$> space
-
 fen :: Parser FEN
-fen = FEN . pack . intercalate "" <$> sequence [fenBoard, spaceS, fenMove, spaceS, fenCastling, spaceS, fenEnPassant, spaceS, fenHalfMoveClock, spaceS, fenFullMove]
+fen = FEN . pack . unwords <$> sequence [fenBoard, fenMove, fenCastling, fenEnPassant, fenHalfMoveClock, fenFullMove]
 
 validate :: FEN -> Either String FEN
 validate (FEN textFEN) = parseOnly fen textFEN
