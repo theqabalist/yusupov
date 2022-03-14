@@ -1,7 +1,8 @@
 module Exercise where
 
 import Data.Map (fromList)
-import Data.Text (concat, replicate)
+import Data.Maybe (fromMaybe)
+import Data.Text (Text, concat, replicate)
 import Data.Yaml (FromJSON, ToJSON)
 import qualified FEN
 import GHC.Generics (Generic)
@@ -11,7 +12,8 @@ import Prelude hiding (concat, replicate)
 
 data Exercise = Exercise
   { difficulty :: Int,
-    fen :: FEN.FEN
+    fen :: FEN.FEN,
+    note :: Maybe Text
   }
   deriving (Eq, Show, Generic)
 
@@ -24,7 +26,7 @@ makeGame chapter idx ex =
   Game
     { headers =
         fromList
-          [ ("Event", "?"),
+          [ ("Event", fromMaybe "" $ note ex),
             ("Site", "?"),
             ("Date", "????.??.??"),
             ("Round", "?"),
