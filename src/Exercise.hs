@@ -26,8 +26,8 @@ makeGame chapter idx ex =
   Game
     { headers =
         fromList
-          [ ("Event", fromMaybe "" $ note ex),
-            ("Site", "?"),
+          [ ("Event", "?"),
+            ("Site", fromMaybe "" $ note ex),
             ("Date", "????.??.??"),
             ("Round", "?"),
             ("White", concat ["Exercise ", showt chapter, ".", showt idx]),
