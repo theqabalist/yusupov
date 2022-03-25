@@ -6,7 +6,7 @@ import Data.Text (Text, concat, pack)
 import Data.Yaml (FromJSON (parseJSON), Parser, ToJSON, Value (..), (.:), (.:?))
 import qualified FEN
 import GHC.Generics (Generic)
-import PGN (Game (..))
+import qualified PGN (Game (..))
 import TextShow (TextShow (showt))
 import Prelude hiding (concat)
 
@@ -16,7 +16,8 @@ data Diagram = Diagram
     black :: Text,
     location :: Text,
     date :: Text,
-    fen :: Maybe FEN.FEN
+    fen :: Maybe FEN.FEN,
+    moves :: Text
   }
   deriving (Eq, Show, Generic)
 
@@ -40,6 +41,7 @@ instance FromJSON Diagram where
     black <- obj .:? "black" >>= (textWithDefault "" . fromMaybe "")
     location <- obj .:? "location" >>= (textWithDefault "" . fromMaybe "")
     date <- obj .:? "date" >>= (parseDate . fromMaybe "")
+    moves <- obj .:? "moves" >>= (textWithDefault "*" . fromMaybe "*")
     fen <- obj .:? "fen"
     pure $
       Diagram
@@ -48,10 +50,11 @@ instance FromJSON Diagram where
           black,
           location,
           date,
-          fen
+          fen,
+          moves
         }
 
-makeGame :: Int -> Diagram -> Game
+makeGame :: Int -> Diagram -> PGN.Game
 makeGame chapter diagram =
   let setupBlock =
         maybe
@@ -62,8 +65,8 @@ makeGame chapter diagram =
               ]
           )
           (fen diagram)
-   in Game
-        { headers =
+   in PGN.Game
+        { PGN.headers =
             fromList $
               [ ("Event", concat ["Diagram ", showt chapter, ".", showt $ designator diagram]),
                 ("Site", location diagram),
@@ -74,7 +77,7 @@ makeGame chapter diagram =
                 ("Result", "*")
               ]
                 ++ setupBlock,
-          moves = ["*"]
+          PGN.moves = [moves diagram]
         }
 
 validate :: Diagram -> Either (String, String) Diagram
