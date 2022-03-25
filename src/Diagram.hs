@@ -8,7 +8,8 @@ import qualified FEN
 import GHC.Generics (Generic)
 import qualified PGN (Game (..))
 import TextShow (TextShow (showt))
-import Prelude hiding (concat)
+import Prelude hiding (String, concat)
+import qualified Prelude as P
 
 data Diagram = Diagram
   { designator :: Int,
@@ -33,6 +34,11 @@ parseDate :: Value -> Parser Text
 parseDate (Number x) = pure $ pack $ show x
 parseDate v = parseJSON v
 
+parseMoves :: Value -> Parser Text
+parseMoves (String t) = pure $ concat [t, " *"]
+parseMoves Null = pure "*"
+parseMoves v = parseJSON v
+
 instance FromJSON Diagram where
   parseJSON v = do
     obj <- parseJSON v
@@ -41,7 +47,7 @@ instance FromJSON Diagram where
     black <- obj .:? "black" >>= (textWithDefault "" . fromMaybe "")
     location <- obj .:? "location" >>= (textWithDefault "" . fromMaybe "")
     date <- obj .:? "date" >>= (parseDate . fromMaybe "")
-    moves <- obj .:? "moves" >>= (textWithDefault "*" . fromMaybe "*")
+    moves <- (obj .:? "moves") >>= (parseMoves . fromMaybe Null)
     fen <- obj .:? "fen"
     pure $
       Diagram
@@ -80,7 +86,7 @@ makeGame chapter diagram =
           PGN.moves = [moves diagram]
         }
 
-validate :: Diagram -> Either (String, String) Diagram
+validate :: Diagram -> Either (P.String, P.String) Diagram
 validate dg@Diagram {fen = Nothing} = Right dg
 validate dg@Diagram {fen = (Just fen)} = either (Left . (,"Diagram " <> show (designator dg))) (Right . \theFen -> dg {fen = Just theFen}) $ FEN.validate fen
 
